@@ -1,50 +1,79 @@
-import { Component } from '@angular/core';
-import { NavController, LoadingController} from '@ionic/angular';
-import { AuthService } from '../../services/auth.service';
-import { HomePage } from '../home/home.page';
 
+import { Component, OnInit } from '@angular/core';
+import { LoginUsuario } from './../../models/login-usuario';
+import { AuthService } from './../../services/auth.service';
+import { TokenService } from './../../services/token.service';
+import { AlertController } from '@ionic/angular';
 
 @Component({
-  selector: 'page-login',
-  templateUrl: 'login.page.html',
+  selector: 'app-login',
+  templateUrl: './login.page.html',
+  styleUrls: ['./login.page.scss'],
 })
-export class LoginPage {
-  //loading: Loading;
-  registerCredentials = { username: '', password: '', device: '172.16.44.4' };
+export class LoginPage implements OnInit {
+  form: any = {};
+  usuario: LoginUsuario;
+  nombreUser: string;
+  isLogged = false;
+  isLoginFail = false;
+  roles: string[] = [];
+  errorMsg = '';
 
-  constructor(private nav: NavController, private auth: AuthService, private loadingCtrl: LoadingController) { }
+  constructor(
+    private authService: AuthService,
+    private tokenService: TokenService,
+    private alertController: AlertController
+    ) { }
 
-  public login() {
-    //this.showLoading();
-    // this.auth.login(this.registerCredentials).subscribe(allowed => {
-    //   if (allowed.token) {
-    //     this.auth.setCurrentUser(allowed);
-    //     //this.nav.setRoot(HomePage);
-    //   } else {
-    //     this.showError("Acceso denegado. Revise sus credenciales");
-    //   }
-    // },
-    //   error => {
-    //     this.showError(error);
-    //   }); 
+  ngOnInit() {
+    if (this.tokenService.getToken()) {
+    // comprobamos los valores del token
+      console.log('Nombre: ' + this.tokenService.getUserName());
+      console.log('Token: ' + this.tokenService.getToken());
+      console.log('Roles: ' + this.tokenService.getAuthorities());
+      this.nombreUser = this.tokenService.getUserName();
+      this.isLogged = true;
+      this.isLoginFail = false;
+      this.roles = this.tokenService.getAuthorities();
+    }
   }
 
-//   showLoading() {
-//     this.loading = this.loadingCtrl.create({
-//       content: 'Autenticando...',
-//       dismissOnPageChange: true
-//     });
-//     this.loading.present();
-//   }
+  onLogin() {
+    this.usuario = new LoginUsuario(this.form.nombreUsuario, this.form.password);
 
-  showError(text) {
-    //this.loading.dismiss();
+    this.authService.login(this.usuario).subscribe(data => {
+      this.tokenService.setToken(data.token);
+      this.tokenService.setUserName(data.nombreUsuario);
+      this.tokenService.setAuthorities(data.authorities);
 
-    // let alert = this.alertCtrl.create({
-    //   title: 'Fail',
-    //   subTitle: text,
-    //   buttons: ['OK']
-    // });
-    // alert.present();
+      this.isLogged = true;
+      this.isLoginFail = false;
+      this.roles = this.tokenService.getAuthorities();
+      window.location.reload();
+    },
+      (err: any) => {
+        console.log(err);
+        this.isLogged = false;
+        this.isLoginFail = true;
+        this.errorMsg = err.error.message;
+        this.presentAlert();
+      }
+    );
   }
+
+  async presentAlert() {
+    const alert = await this.alertController.create({
+      header: 'Fail en el login',
+      message: this.errorMsg,
+      buttons: ['Aceptar']
+    });
+
+    await alert.present();
+  }
+
+onLogout() {
+  this.tokenService.logOut();
+  window.location.reload();
+}
+
 }
