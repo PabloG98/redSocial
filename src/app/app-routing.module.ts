@@ -1,21 +1,43 @@
 import { NgModule } from '@angular/core';
 import { PreloadAllModules, RouterModule, Routes } from '@angular/router';
+import { GuardService as guard } from './guards/guard.service';
 
 const routes: Routes = [
+  { path: '', redirectTo: 'login', pathMatch: 'full' },
+  { path: 'login', loadChildren: './pages/login/login.module#LoginPageModule' },
+  { path: 'registro', loadChildren: './pages/registro/registro.module#RegistroPageModule' },
   {
-    path: '',
-    redirectTo: 'home',
-    pathMatch: 'full'
+    path: 'admin',
+    loadChildren: './pages/admin/admin.module#AdminPageModule',
+    canActivate: [guard],
+    data: { expectedRol: ['admin'] }
   },
   {
-    path: 'home',
-    loadChildren: () => import('./home/home.module').then(m => m.HomePageModule)
+    path: 'user',
+    loadChildren: './pages/user/user.module#UserPageModule',
+    canActivate: [guard],
+    data: { expectedRol: ['admin', 'user'] }
   },
   {
-    path: 'list',
-    loadChildren: () => import('./list/list.module').then(m => m.ListPageModule)
-  }
+    path: 'detalle/:id',
+    loadChildren: './pages/producto-detalle/producto-detalle.module#ProductoDetallePageModule',
+    canActivate: [guard],
+    data: { expectedRol: ['admin', 'user'] }
+  },
+  {
+    path: 'nuevo',
+    loadChildren: './pages/nuevo-producto/nuevo-producto.module#NuevoProductoPageModule',
+    canActivate: [guard],
+    data: { expectedRol: ['admin'] }
+  },
+  {
+    path: 'editar/:id',
+    loadChildren: './pages/editar-producto/editar-producto.module#EditarProductoPageModule',
+    canActivate: [guard],
+    data: { expectedRol: ['admin'] }
+  },
 ];
+
 
 @NgModule({
   imports: [
@@ -23,4 +45,4 @@ const routes: Routes = [
   ],
   exports: [RouterModule]
 })
-export class AppRoutingModule {}
+export class AppRoutingModule { }
